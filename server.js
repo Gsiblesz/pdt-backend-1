@@ -7,23 +7,31 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Endpoint para crear usuario
-app.post('/users', async (req, res) => {
+
+// Endpoint para guardar un registro de panadería
+app.post('/registros', async (req, res) => {
   try {
-    const { email, name } = req.body;
-    const user = await prisma.user.create({
-      data: { email, name },
+    const { fecha, ...rest } = req.body;
+    const registro = await prisma.registro.create({
+      data: {
+        fecha: fecha || '',
+        data: req.body, // Guarda todo el objeto recibido
+      },
     });
-    res.status(201).json(user);
+    res.status(201).json(registro);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 });
 
-// Endpoint para listar usuarios
-app.get('/users', async (req, res) => {
-  const users = await prisma.user.findMany();
-  res.json(users);
+// Endpoint para obtener todos los registros
+app.get('/registros', async (req, res) => {
+  try {
+    const registros = await prisma.registro.findMany({ orderBy: { createdAt: 'desc' } });
+    res.json(registros);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 const PORT = process.env.PORT || 3000;

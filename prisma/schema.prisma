@@ -20,3 +20,10 @@ model User {
   name  String?
   createdAt DateTime @default(now())
 }
+
+model Registro {
+  id        Int      @id @default(autoincrement())
+  fecha     String   // Fecha del conjunto (puedes usar DateTime si prefieres)
+  data      Json     // Objeto completo: incluye tiempos muertos, totales, máquinas, procesos, temperaturas, etc.
+  createdAt DateTime @default(now())
+}
