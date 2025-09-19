@@ -4,5 +4,10 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "prisma": "^6.16.2"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "postinstall": "prisma generate",
+    "prisma:migrate": "prisma migrate deploy"
   }
 }
