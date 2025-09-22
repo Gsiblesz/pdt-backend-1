@@ -49,7 +49,13 @@ app.delete('/registros/:id', async (req, res) => {
     if(Number.isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
     const del = await prisma.registro.delete({ where: { id } });
     res.json({ deleted: del.id });
-  }catch(error){ res.status(500).json({ error: error.message }); }
+  }catch(error){
+    // Si el registro no existe, Prisma lanza P2025: devolver 404 en lugar de 500
+    if (error && (error.code === 'P2025' || /No record was found/i.test(String(error.message||'')))) {
+      return res.status(404).json({ error: 'Registro no encontrado' });
+    }
+    res.status(500).json({ error: error.message });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
