@@ -34,6 +34,24 @@ app.get('/registros', async (req, res) => {
   }
 });
 
+// Eliminar todos los registros
+app.delete('/registros', async (req, res) => {
+  try{
+    const del = await prisma.registro.deleteMany({});
+    res.json({ deleted: del.count });
+  }catch(error){ res.status(500).json({ error: error.message }); }
+});
+
+// Eliminar un registro por id
+app.delete('/registros/:id', async (req, res) => {
+  try{
+    const id = parseInt(req.params.id);
+    if(Number.isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
+    const del = await prisma.registro.delete({ where: { id } });
+    res.json({ deleted: del.id });
+  }catch(error){ res.status(500).json({ error: error.message }); }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en http://localhost:${PORT}`);
