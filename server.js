@@ -7,9 +7,21 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Simple API key middleware for mutating routes
+function requireApiKey(req, res, next) {
+  const configured = process.env.BACKEND_API_KEY || '';
+  if (!configured) {
+    // If no key configured, allow (for development)
+    return next();
+  }
+  const key = req.get('x-api-key') || req.get('X-API-Key');
+  if (key && key === configured) return next();
+  return res.status(401).json({ error: 'Unauthorized' });
+}
+
 
 // Endpoint para guardar un registro de panadería
-app.post('/registros', async (req, res) => {
+app.post('/registros', requireApiKey, async (req, res) => {
   try {
     const { fecha, ...rest } = req.body;
     const registro = await prisma.registro.create({
@@ -25,12 +37,22 @@ app.post('/registros', async (req, res) => {
 });
 
 // Endpoint para obtener todos los registros
-app.get('/registros', async (req, res) => {
+app.get('/registros', requireApiKey, async (req, res) => {
   try {
     // Paginación opcional
     const take = Math.max(0, parseInt(req.query.take)) || undefined; // undefined = sin límite
     const skip = Math.max(0, parseInt(req.query.skip)) || undefined;
+    // Filtro por fecha (YYYY-MM-DD) usando los campos de nivel superior
+    const desde = typeof req.query.desde === 'string' ? req.query.desde : undefined;
+    const hasta = typeof req.query.hasta === 'string' ? req.query.hasta : undefined;
+    const where = {};
+    if (desde || hasta) {
+      where.AND = [];
+      if (desde) where.AND.push({ fecha: { gte: desde } });
+      if (hasta) where.AND.push({ fecha: { lte: hasta } });
+    }
     const registros = await prisma.registro.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
       ...(typeof take === 'number' ? { take } : {}),
       ...(typeof skip === 'number' ? { skip } : {}),
@@ -42,7 +64,7 @@ app.get('/registros', async (req, res) => {
 });
 
 // Total de registros (para paginación opcional)
-app.get('/registros/count', async (_req, res) => {
+app.get('/registros/count', requireApiKey, async (_req, res) => {
   try {
     const count = await prisma.registro.count();
     res.json({ count });
@@ -52,7 +74,7 @@ app.get('/registros/count', async (_req, res) => {
 });
 
 // Eliminar todos los registros
-app.delete('/registros', async (req, res) => {
+app.delete('/registros', requireApiKey, async (req, res) => {
   try{
     const del = await prisma.registro.deleteMany({});
     res.json({ deleted: del.count });
@@ -60,7 +82,7 @@ app.delete('/registros', async (req, res) => {
 });
 
 // Eliminar un registro por id
-app.delete('/registros/:id', async (req, res) => {
+app.delete('/registros/:id', requireApiKey, async (req, res) => {
   try{
     const id = parseInt(req.params.id);
     if(Number.isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
@@ -76,7 +98,7 @@ app.delete('/registros/:id', async (req, res) => {
 });
 
 // Eliminar una sola amasadora de un registro por índice
-app.delete('/registros/:id/amasadoras/:index', async (req, res) => {
+app.delete('/registros/:id/amasadoras/:index', requireApiKey, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const index = parseInt(req.params.index);
