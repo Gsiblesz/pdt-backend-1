@@ -23,43 +23,15 @@ function requireApiKey(req, res, next) {
 // Endpoint para guardar un registro de panadería
 app.post('/registros', requireApiKey, async (req, res) => {
   try {
-    const { fecha } = req.body || {};
-    // Calcular firmas de cada amasadora para evitar duplicados (si payload contiene varias)
-    const amasadoras = Array.isArray(req.body?.amasadoras) ? req.body.amasadoras : [];
-    // Si viene sólo una amasadora podemos usar firma directa, si varias podemos crear una firma hash simple
-    let signatures = [];
-    amasadoras.forEach(a => {
-      try{
-        const p1Start = a?.procesos?.[0]?.startTime || a?.proceso1?.startTime || '';
-        const nombre = (a?.nombre||a?.id||'').toString().trim().toLowerCase();
-        const tipo = (a?.tipoMasa||a?.tipoPan||'').toString().trim().toLowerCase();
-        signatures.push(`${fecha||''}__${nombre}__${tipo}__${p1Start}`);
-      }catch(_){ /* ignore */ }
-    });
-    if(signatures.length===0){
-      // fallback genérico por si no hay amasadoras
-      signatures.push(`${fecha||''}__payload_vacio`);
-    }
-    // Para múltiples, unimos; para uno usamos directo
-    const signature = signatures.length===1 ? signatures[0] : ('multi__'+signatures.sort().join('|')); 
-    // Buscar existente
-    const existing = await prisma.registro.findFirst({ where: { signature } });
-    if(existing){
-      return res.status(200).json({ duplicated:true, id: existing.id, signature });
-    }
+    const { fecha, ...rest } = req.body;
     const registro = await prisma.registro.create({
       data: {
         fecha: fecha || '',
-        data: req.body,
-        signature
-      }
+        data: req.body, // Guarda todo el objeto recibido
+      },
     });
     res.status(201).json(registro);
   } catch (error) {
-    // Unique constraint violation (firma) => devolver duplicado
-    if(error.code === 'P2002'){
-      return res.status(200).json({ duplicated:true, signature: req.body?.signature });
-    }
     res.status(400).json({ error: error.message });
   }
 });
