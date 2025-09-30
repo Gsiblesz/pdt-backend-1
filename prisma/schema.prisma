@@ -26,4 +26,6 @@ model Registro {
   fecha     String   // Fecha del conjunto (puedes usar DateTime si prefieres)
   data      Json     // Objeto completo: incluye tiempos muertos, totales, máquinas, procesos, temperaturas, etc.
   createdAt DateTime @default(now())
+  // Firma opcional para evitar duplicados exactos (fecha + id/nombre + tipo + start proceso1)
+  signature String?  @unique
 }
