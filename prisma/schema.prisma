@@ -27,3 +27,11 @@ model Registro {
   data      Json     // Objeto completo: incluye tiempos muertos, totales, máquinas, procesos, temperaturas, etc.
   createdAt DateTime @default(now())
 }
+
+// Registros de Mesa (tiempos por lote en la mesa)
+model MesaRegistro {
+  id        Int      @id @default(autoincrement())
+  fecha     String   // YYYY-MM-DD
+  data      Json     // Objeto completo del registro de mesa (lote, tipoMasa, inicio, fin, duracionSeg, operador, cantidad, observaciones, etc.)
+  createdAt DateTime @default(now())
+}

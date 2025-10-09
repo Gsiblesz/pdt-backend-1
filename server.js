@@ -130,6 +130,42 @@ app.delete('/registros/:id/amasadoras/:index', requireApiKey, async (req, res) =
   }
 });
 
+// ======= Mesa endpoints =======
+// Crear un registro de mesa
+app.post('/mesa', requireApiKey, async (req, res) => {
+  try{
+    const { fecha, ...rest } = req.body || {};
+    const reg = await prisma.mesaRegistro.create({ data: { fecha: fecha || '', data: req.body } });
+    res.status(201).json(reg);
+  }catch(error){ res.status(400).json({ error: error.message }); }
+});
+// Listar registros de mesa (con filtros básicos opcionales)
+app.get('/mesa', requireApiKey, async (req, res) => {
+  try{
+    const take = Math.max(0, parseInt(req.query.take)) || undefined;
+    const skip = Math.max(0, parseInt(req.query.skip)) || undefined;
+    const desde = typeof req.query.desde === 'string' ? req.query.desde : undefined;
+    const hasta = typeof req.query.hasta === 'string' ? req.query.hasta : undefined;
+    const where = {};
+    if (desde || hasta) {
+      where.AND = [];
+      if (desde) where.AND.push({ fecha: { gte: desde } });
+      if (hasta) where.AND.push({ fecha: { lte: hasta } });
+    }
+    const list = await prisma.mesaRegistro.findMany({ where, orderBy: { createdAt: 'desc' }, ...(take?{take}:{}) , ...(skip?{skip}:{}) });
+    res.json(list);
+  }catch(error){ res.status(500).json({ error: error.message }); }
+});
+// Eliminar todos los registros de mesa
+app.delete('/mesa', requireApiKey, async (_req, res) => {
+  try{ const del = await prisma.mesaRegistro.deleteMany({}); res.json({ deleted: del.count }); }catch(error){ res.status(500).json({ error: error.message }); }
+});
+// Eliminar por id
+app.delete('/mesa/:id', requireApiKey, async (req, res) => {
+  try{ const id=parseInt(req.params.id); if(Number.isNaN(id)) return res.status(400).json({ error:'ID inválido' }); const del = await prisma.mesaRegistro.delete({ where:{ id } }); res.json({ deleted: del.id }); }
+  catch(error){ if (error && (error.code === 'P2025' || /No record was found/i.test(String(error.message||'')))) return res.status(404).json({ error: 'Registro no encontrado' }); res.status(500).json({ error: error.message }); }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en http://localhost:${PORT}`);
